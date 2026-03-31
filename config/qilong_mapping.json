@@ -1,0 +1,18 @@
+{
+    "stores": {
+      "33370": {
+        "store_id": "ac4_33370",
+        "channel_id": 5637192654,
+        "currency": "CAD",
+        "inventory_location_id": "Default",
+        "oun": "00013588",
+        "csu_base_url": "https://..."
+      }
+    },
+    "fuel_items": [
+      { "pos_store_id": "33370", "fuel_grade_id": "4", "service_level_code": "self", "item_id": "000006056" }
+    ],
+    "tender_types": [
+      { "tender_code": "2", "tender_subcode": "VISA", "tender_type_id": "2" }
+    ]
+  }
