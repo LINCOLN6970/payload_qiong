@@ -4,6 +4,13 @@ from pathlib import Path
 
 from transaction_builder import TransactionPayloadBuilder
 
+try:
+    from pos_extract import is_shift_batch
+    from shift_summary_builder import ShiftSummaryPayloadBuilder
+except ImportError:
+    from pos_extract import is_shift_batch
+    from shift_summary_builder import ShiftSummaryPayloadBuilder
+
 
 def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -17,39 +24,45 @@ def write_json(path: Path, data: dict) -> None:
     )
 
 
-def default_output_path(input_path: Path) -> Path:
-    return input_path.with_name("_payload_header.json")
+def default_output_path(input_path: Path, *, shift: bool) -> Path:
+    if shift:
+        return input_path.with_name("_payload_shift_batch.json")
+    return input_path.with_name("_payload_transaction.json")
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Build payload from qilong _pos_data.json"
+        description=(
+            "Build CSU payload from qilong extract: "
+            "_payload_transaction.json (single txn) or "
+            "_payload_shift_batch.json (shift batch)."
+        )
     )
-    parser.add_argument(
-        "-i",
-        "--input",
-        required=True,
-        help="Path to _pos_data.json",
-    )
-    parser.add_argument(
-        "-o",
-        "--output",
-        default=None,
-        help="Output payload path (default: same folder/_payload_header.json)",
-    )
+    parser.add_argument("-i", "--input", required=True, help="Path to JSON extract")
+    parser.add_argument("-o", "--output", default=None, help="Output path")
     args = parser.parse_args()
 
     input_path = Path(args.input)
-    output_path = Path(args.output) if args.output else default_output_path(input_path)
-
+    
     pos_data = load_json(input_path)
 
-    builder = TransactionPayloadBuilder()
-    payload = builder.build_dict(pos_data)
+    shift = is_shift_batch(pos_data) and len(pos_data.get("Transactions") or []) > 0
+    output_path = (
+        Path(args.output) if args.output else default_output_path(input_path, shift=shift)
+    )
 
-    if payload is None:
-        print(f"No payload built. skip_reason={builder.skip_reason}")
-        return
+    if shift:
+        builder = ShiftSummaryPayloadBuilder()
+        payload = builder.build_dict(pos_data)
+        if payload is None:
+            print(f"No batch payload. skip_reason={builder.skip_reason}")
+            return
+    else:
+        builder = TransactionPayloadBuilder()
+        payload = builder.build_dict(pos_data)
+        if payload is None:
+            print(f"No payload built. skip_reason={builder.skip_reason}")
+            return
 
     write_json(output_path, payload)
     print(f"Payload written to {output_path}")

@@ -21,6 +21,13 @@ class PosKeys:
     TERMINAL_ID_META = "_terminal_id"
     CSU_SHIFT_ID_META = "_csu_shift_id"
 
+    # --- 加到 PosKeys 类里（推荐）---
+    SHIFT_SUMMARY = "ShiftSummary"
+    BEGIN_DATE = "BEGINDATE"
+    END_DATE = "ENDDATE"
+    BEGIN_TIME = "BEGINTIME"
+    END_TIME = "ENDTIME"
+
 
 class LineKeys:
     """Shared POS line / tender field names (XML-style UPPERCASE)."""
@@ -79,3 +86,35 @@ def materialize_transaction(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     txn.setdefault(PosKeys.CSU_SHIFT_ID_META, bulloch_shift_id)
 
     return txn
+
+
+def is_shift_batch(data: Dict[str, Any]) -> bool:
+    """True for shift XML extract (has ShiftSummary + Transactions list)."""
+    return PosKeys.SHIFT_SUMMARY in data and isinstance(
+        data.get(PosKeys.TRANSACTIONS), list
+    )
+
+
+def materialize_shift_bundle(data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    Copy shift root and set batch-level _terminal_id / _csu_shift_id for injection
+    into each transaction (mirrors formal shift builder).
+    Returns None if not a shift batch shape.
+    """
+    if not is_shift_batch(data):
+        return None
+
+    bundle = dict(data)
+    store_id = bundle.get(PosKeys.STORE_LOCATION_ID, "") or ""
+    txns = bundle.get(PosKeys.TRANSACTIONS) or []
+    register_id = "1"
+    if txns:
+        register_id = (txns[0].get(PosKeys.REGISTER_ID) or "1") or "1"
+    bulloch = bundle.get(PosKeys.BULLOCH_SHIFT_ID, "") or ""
+
+    bundle.setdefault(
+        PosKeys.TERMINAL_ID_META,
+        f"{store_id}-{register_id}" if store_id and register_id else "",
+    )
+    bundle.setdefault(PosKeys.CSU_SHIFT_ID_META, bulloch)
+    return bundle
