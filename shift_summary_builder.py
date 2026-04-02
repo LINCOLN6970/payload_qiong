@@ -49,13 +49,13 @@ class ShiftSummaryPayloadBuilder:
             self.skip_reason = "no transactions in shift"
             return None
 
-        shift_summary_data = bundle.get("ShiftSummary") or {}
+        shift_summary_data = bundle.get(PosKeys.SHIFT_SUMMARY) or {}
 
         header = ShiftSummaryHeader()
-        header.BULLOCHSHIFTID = bundle.get("BULLOCHSHIFTID") or ""
-        header.STORELOCATIONID = bundle.get("STORELOCATIONID") or ""
-        header.BEGINDATE = bundle.get("BEGINDATE") or ""
-        header.ENDDATE = bundle.get("ENDDATE") or ""
+        header.BULLOCHSHIFTID = bundle.get(PosKeys.BULLOCH_SHIFT_ID) or ""
+        header.STORELOCATIONID = bundle.get(PosKeys.STORE_LOCATION_ID) or ""
+        header.BEGINDATE = bundle.get(PosKeys.BEGIN_DATE) or ""
+        header.ENDDATE = bundle.get(PosKeys.END_DATE) or ""
 
         header.CUSTOMERCOUNT = shift_summary_data.get("CUSTOMERCOUNT")
         header.DRAWERMANUALLYOPENED = shift_summary_data.get("DRAWERMANUALLYOPENED")

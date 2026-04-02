@@ -4,13 +4,8 @@ from pathlib import Path
 
 from transaction_builder import TransactionPayloadBuilder
 
-try:
-    from pos_extract import is_shift_batch
-    from shift_summary_builder import ShiftSummaryPayloadBuilder
-except ImportError:
-    from pos_extract import is_shift_batch
-    from shift_summary_builder import ShiftSummaryPayloadBuilder
-
+from pos_extract import is_shift_batch, PosKeys
+from shift_summary_builder import ShiftSummaryPayloadBuilder
 
 def load_json(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -46,7 +41,7 @@ def main():
     
     pos_data = load_json(input_path)
 
-    shift = is_shift_batch(pos_data) and len(pos_data.get("Transactions") or []) > 0
+    shift = is_shift_batch(pos_data) and len(pos_data.get(PosKeys.TRANSACTIONS) or []) > 0
     output_path = (
         Path(args.output) if args.output else default_output_path(input_path, shift=shift)
     )
