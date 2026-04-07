@@ -1,35 +1,30 @@
 try:
     from .base import BasePayloadBuilder
     from .models.sales_order import SalesOrderModel
-    from .steps.build_sales_order_header import SalesOrderHeaderStep
-    from .steps.build_regular_sales_lines import RegularSalesLinesStep
-    from .steps.build_charge_lines import ChargeLinesStep
-    from .steps.build_fuel_sales_lines import FuelSalesLinesStep
-    from .steps.build_tender_line import TenderLinesStep
+    from .steps import TRANSACTION_STEP_ORDER, get_step
+    from .steps.base import DataManagerStep
     from .pos_extract import PosKeys, materialize_transaction
     from .data_manager import get_data_manager
 except ImportError:
     from base import BasePayloadBuilder
     from models.sales_order import SalesOrderModel
-    from steps.build_sales_order_header import SalesOrderHeaderStep
-    from steps.build_regular_sales_lines import RegularSalesLinesStep
-    from steps.build_charge_lines import ChargeLinesStep
-    from steps.build_fuel_sales_lines import FuelSalesLinesStep
-    from steps.build_tender_line import TenderLinesStep
+    from steps import TRANSACTION_STEP_ORDER, get_step
+    from steps.base import DataManagerStep
     from pos_extract import PosKeys, materialize_transaction
     from data_manager import get_data_manager
+
+
+def _instantiate_step(name, data_manager):
+    cls = get_step(name)
+    if issubclass(cls, DataManagerStep):
+        return cls(data_manager)
+    return cls()
 
 
 class TransactionPayloadBuilder(BasePayloadBuilder):
     def __init__(self, data_manager=None):
         dm = data_manager if data_manager is not None else get_data_manager()
-        steps = [
-            SalesOrderHeaderStep(dm),
-            RegularSalesLinesStep(),
-            ChargeLinesStep(),
-            FuelSalesLinesStep(dm),
-            TenderLinesStep(dm),
-        ]
+        steps = [_instantiate_step(name, dm) for name in TRANSACTION_STEP_ORDER]
         super().__init__(SalesOrderModel, steps)
 
     def _build(self, data):
